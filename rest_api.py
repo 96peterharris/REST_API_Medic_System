@@ -68,7 +68,7 @@ class UserManager(Resource):
         if not pesel:
             users = User.query.all()
             return jsonify(users_schema.dump(users))
-        user = User.query.filter_by(pesel=pesel).all()
+        user = User.query.filter_by(pesel=pesel).first()
         return jsonify(user_schema.dump(user))
 
     @staticmethod
