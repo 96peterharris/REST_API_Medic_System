@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, make_response
 from flask_sqlalchemy import SQLAlchemy 
 from flask_marshmallow import Marshmallow
 from flask_restful import Resource, Api
@@ -48,7 +48,7 @@ class UserSchema(ma.Schema):
 user_schema = UserSchema() 
 users_schema = UserSchema(many=True)
 
-class UserManager(Resource): 
+class UserManager(Resource):
     @staticmethod
     def get():
         try: id = request.args['id']
@@ -68,8 +68,11 @@ class UserManager(Resource):
         if not pesel:
             users = User.query.all()
             return jsonify(users_schema.dump(users))
-        user = User.query.filter_by(pesel=pesel).first()
-        return jsonify(user_schema.dump(user))
+        elif check_pesel(pesel) == False:
+            return make_response(jsonify({ 'Message': 'Wrong pesel format!' }),400)
+        else:
+            user = User.query.filter_by(pesel=pesel).first()
+            return jsonify(user_schema.dump(user))
 
     @staticmethod
     def post():
@@ -79,29 +82,30 @@ class UserManager(Resource):
         last_name = request.json['last_name']
         research_result = request.json['research_result']
 
-        user = User(pesel, password, first_name, last_name, research_result)
-        db.session.add(user)
-        db.session.commit()
-
-        return jsonify({
-            'Message': f'User {first_name} {last_name} inserted.'
-        })
+        if check_pesel(pesel) == True:
+            user = User(pesel, password, first_name, last_name, research_result)
+            db.session.add(user)
+            db.session.commit()
+            return jsonify({'Message': f'User {first_name} {last_name} inserted.'})
+        else:
+            return make_response(jsonify({ 'Message': 'Wrong pesel format!' }),400)
+       
     
     @staticmethod
     def put():
         try: pesel = request.args['pesel']
         except Exception as _: pesel = None
 
-        if not pesel:
-            return jsonify({ 'Message': 'Must provide the user pesel' })
+        if not pesel or check_pesel(pesel) == False:
+            return jsonify({ 'Message': 'Must provide the proper user pesel' })
 
-        user = User.query.get(pesel)
+        user = User.query.filter_by(pesel=pesel).first()
         pesel = request.json['pesel']
         password = request.json['password']
         first_name = request.json['first_name']
         last_name = request.json['last_name']
         research_result = request.json['research_result']
-        
+
         user.pesel = pesel
         user.password = password
         user.first_name = first_name
@@ -109,16 +113,14 @@ class UserManager(Resource):
         user.research_result = research_result
 
         db.session.commit()
-        return jsonify({
-            'Message': f'User {first_name} {last_name} altered.'
-        })
+        return jsonify({'Message': f'User {first_name} {last_name} altered.'})
 
     @staticmethod
     def delete():
         try: pesel = request.args['pesel']
         except Exception as _: pesel = None
 
-        if not pesel:
+        if not pesel or check_pesel(pesel) == False:
             return jsonify({ 'Message': 'Must provide the user pesel' })
 
         user = User.query.get(pesel)
@@ -234,6 +236,13 @@ class EmployeeManager(Resource):
         })
 
 api.add_resource(EmployeeManager, '/api/employees')
+
+def check_pesel(pesel):
+        if len(pesel) == 12 and pesel.isdigit():
+            return True
+        else:
+            return False
+
 
 if __name__ == '__main__':
     app.run(debug=True)
