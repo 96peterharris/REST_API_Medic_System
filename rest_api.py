@@ -238,7 +238,7 @@ class EmployeeManager(Resource):
 api.add_resource(EmployeeManager, '/api/employees')
 
 def check_pesel(pesel):
-        if len(pesel) == 12 and pesel.isdigit():
+        if len(pesel) == 11 and pesel.isdigit():
             return True
         else:
             return False
