@@ -49,16 +49,16 @@ user_schema = UserSchema()
 users_schema = UserSchema(many=True)
 
 class UserManager(Resource):
-    @staticmethod
-    def get():
-        try: id = request.args['id']
-        except Exception as _: id = None
+    # @staticmethod
+    # def get():
+    #     try: id = request.args['id']
+    #     except Exception as _: id = None
 
-        if not id:
-            users = User.query.all()
-            return jsonify(users_schema.dump(users))
-        user = User.query.get(id)
-        return jsonify(user_schema.dump(user))
+    #     if not id:
+    #         users = User.query.all()
+    #         return jsonify(users_schema.dump(users))
+    #     user = User.query.get(id)
+    #     return make_response(jsonify(user_schema.dump(user)),200)
 
     @staticmethod
     def get():
@@ -67,12 +67,12 @@ class UserManager(Resource):
 
         if not pesel:
             users = User.query.all()
-            return jsonify(users_schema.dump(users))
-        elif check_pesel(pesel) == False:
+            return make_response(jsonify(users_schema.dump(users)),200)
+        elif check_pesel(pesel) == None:
             return make_response(jsonify({ 'Message': 'Wrong pesel format!' }),400)
         else:
             user = User.query.filter_by(pesel=pesel).first()
-            return jsonify(user_schema.dump(user))
+            return make_response(jsonify(user_schema.dump(user)),200)
 
     @staticmethod
     def post():
@@ -86,7 +86,9 @@ class UserManager(Resource):
             user = User(pesel, password, first_name, last_name, research_result)
             db.session.add(user)
             db.session.commit()
-            return jsonify({'Message': f'User {first_name} {last_name} inserted.'})
+            return make_response(jsonify({'Message': f'User {first_name} {last_name} inserted.'}),201)
+        elif User.query.filter_by(pesel=pesel).first() != None:
+            return make_response(jsonify({ 'Message': 'This PESEL is used!' }),400)
         else:
             return make_response(jsonify({ 'Message': 'Wrong pesel format!' }),400)
        
@@ -97,23 +99,31 @@ class UserManager(Resource):
         except Exception as _: pesel = None
 
         if not pesel or check_pesel(pesel) == False:
-            return jsonify({ 'Message': 'Must provide the proper user pesel' })
+            return make_response(jsonify({ 'Message': 'Must provide the proper user pesel' }),400)
 
         user = User.query.filter_by(pesel=pesel).first()
-        pesel = request.json['pesel']
-        password = request.json['password']
-        first_name = request.json['first_name']
-        last_name = request.json['last_name']
-        research_result = request.json['research_result']
 
-        user.pesel = pesel
+        if user == None:
+            return make_response(jsonify({ 'Message': 'User not exist!' }),404)
+
+        # pesel = request.json['pesel']
+        # password = request.json['password']
+        # first_name = request.json['first_name']
+        # last_name = request.json['last_name']
+        # research_result = request.json['research_result']
+
+        # user.pesel = pesel
+        # user.password = password
+        # user.first_name = first_name
+        # user.last_name = last_name
+
+        password = request.json['password']
+        research_result = request.json['research_result']
         user.password = password
-        user.first_name = first_name
-        user.last_name = last_name
         user.research_result = research_result
 
         db.session.commit()
-        return jsonify({'Message': f'User {first_name} {last_name} altered.'})
+        return make_response(jsonify({'Message': f'User {user.first_name} {user.last_name} altered.'}),200)
 
     @staticmethod
     def delete():
@@ -121,15 +131,17 @@ class UserManager(Resource):
         except Exception as _: pesel = None
 
         if not pesel or check_pesel(pesel) == False:
-            return jsonify({ 'Message': 'Must provide the user pesel' })
+            return make_response(jsonify({ 'Message': 'Must provide the user pesel' }),400)
 
         user = User.query.get(pesel)
+
+        if user == None:
+             return make_response(jsonify({ 'Message': 'User not exist!' }),404)
+
         db.session.delete(user)
         db.session.commit()
 
-        return jsonify({
-            'Message': f'User {pesel} deleted.'
-        })
+        return make_response(jsonify({'Message': f'User {pesel} deleted.'}),200)
 
 
 api.add_resource(UserManager, '/api/users')
@@ -158,16 +170,16 @@ employee_schema = EmployeeSchema()
 employee_schema = EmployeeSchema(many=True)
 
 class EmployeeManager(Resource): 
-    @staticmethod
-    def get():
-        try: id = request.args['id']
-        except Exception as _: id = None
+    # @staticmethod
+    # def get():
+    #     try: id = request.args['id']
+    #     except Exception as _: id = None
 
-        if not id:
-            employees = Employee.query.all()
-            return jsonify(employee_schema.dump(employees))
-        employee = Employee.query.get(id)
-        return jsonify(employee_schema.dump(employee))
+    #     if not id:
+    #         employees = Employee.query.all()
+    #         return jsonify(employee_schema.dump(employees))
+    #     employee = Employee.query.get(id)
+    #     return jsonify(employee_schema.dump(employee))
 
     @staticmethod
     def get():
@@ -176,9 +188,12 @@ class EmployeeManager(Resource):
 
         if not username:
             employees = Employee.query.all()
-            return jsonify(employee_schema.dump(employees))
-        employee = Employee.query.filter_by(username=username).all()
-        return jsonify(employee_schema.dump(employee))
+            return make_response(jsonify(employee_schema.dump(employees)),200)
+        elif Employee.query.filter_by(username=username).all() == None:
+            return make_response(jsonify({ 'Message': 'Employee not exist!' }),404)
+        else:
+            employee = Employee.query.filter_by(username=username).all()
+            return make_response(jsonify(employee_schema.dump(employee)),200)
 
     @staticmethod
     def post():
@@ -187,53 +202,45 @@ class EmployeeManager(Resource):
         first_name = request.json['first_name']
         last_name = request.json['last_name']
 
-        employee = Employee(username, password, first_name, last_name)
-        db.session.add(employee)
-        db.session.commit()
-
-        return jsonify({
-            'Message': f'Employee {first_name} {last_name} inserted.'
-        })
+        if Employee.query.filter_by(username=username).first() != None:
+            return make_response(jsonify({'Message': 'This username is used!'}),400)
+        else:
+            employee = Employee(username, password, first_name, last_name)
+            db.session.add(employee)
+            db.session.commit()
+            return make_response(jsonify({'Message': f'Employee {first_name} {last_name} inserted.'}),201)
     
     @staticmethod
     def put():
-        try: id = request.args['id']
-        except Exception as _: id = None
+        try: username = request.args['username']
+        except Exception as _: username = None
 
-        if not id:
-            return jsonify({ 'Message': 'Must provide the employee ID' })
-
-        employee = Employee.query.get(id)
-        username = request.json['username']
-        password = request.json['password']
-        first_name = request.json['first_name']
-        last_name = request.json['last_name']
-    
-        employee.username = username
-        employee.password = password
-        employee.first_name = first_name
-        employee.last_name = last_name
-
-        db.session.commit()
-        return jsonify({
-            'Message': f'Employee {first_name} {last_name} altered.'
-        })
+        if not username:
+            return jsonify({ 'Message': 'Must provide the employee \"username\"' })
+        elif Employee.query.filter_by(username=username).all() == None:
+            return make_response(jsonify({ 'Message': 'Employee not exist!' }),404)
+        else:
+            employee = Employee.query.filter_by(username=username).first()
+            password = request.json['password']
+            employee.password = password
+            db.session.commit()
+            return jsonify({'Message': f'Employee {employee.first_name} {employee.last_name} altered.'})
+      
 
     @staticmethod
     def delete():
-        try: id = request.args['id']
-        except Exception as _: id = None
+        try: username = request.args['username']
+        except Exception as _: username = None
 
-        if not id:
-            return jsonify({ 'Message': 'Must provide the user ID' })
-
-        employee = Employee.query.get(id)
-        db.session.delete(employee)
-        db.session.commit()
-
-        return jsonify({
-            'Message': f'Employee {str(id)} deleted.'
-        })
+        if not username:
+            return jsonify({ 'Message': 'Must provide the employee \"username\"' })
+        elif Employee.query.filter_by(username=username).all() == None:
+            return make_response(jsonify({ 'Message': 'Employee not exist!' }),404)
+        else:
+            employee = Employee.query.filter_by(username=username).first()
+            db.session.delete(employee)
+            db.session.commit()
+            return make_response(jsonify({'Message': f'Employee {username} deleted.'}),200)
 
 api.add_resource(EmployeeManager, '/api/employees')
 
