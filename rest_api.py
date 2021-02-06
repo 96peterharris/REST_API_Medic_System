@@ -62,11 +62,14 @@ class UserManager(Resource):
         if not pesel:
             users = User.query.all()
             return make_response(jsonify(users_schema.dump(users)),200)
-        elif check_pesel(pesel) == None:
+        elif check_pesel(pesel) == False:
             return make_response(jsonify({ 'Message': 'Wrong pesel format!' }),400)
         else:
             user = User.query.filter_by(pesel=pesel).first()
-            return make_response(jsonify(user_schema.dump(user)),200)
+            if user == None:
+                return make_response(jsonify({ 'Message': 'Wrong pesel!' }),400)
+            else:
+                return make_response(jsonify(user_schema.dump(user)),200)
 
     @staticmethod
     def post():
@@ -74,16 +77,14 @@ class UserManager(Resource):
         password = request.json['password']
         first_name = request.json['first_name']
         last_name = request.json['last_name']
-        
-        if check_pesel(pesel) == True:
+
+        if check_pesel(pesel) == True and User.query.filter_by(pesel=pesel).first() == None:
             user = User(pesel, password, first_name, last_name)
             db.session.add(user)
             db.session.commit()
             return make_response(jsonify({'Message': f'User {first_name} {last_name} inserted.'}),201)
-        elif User.query.filter_by(pesel=pesel).first() != None:
-            return make_response(jsonify({ 'Message': 'This PESEL is used!' }),400)
         else:
-            return make_response(jsonify({ 'Message': 'Wrong pesel format!' }),400)
+            return make_response(jsonify({ 'Message': 'Wrong credentials!' }),400)
        
     
     @staticmethod
