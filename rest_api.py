@@ -167,8 +167,8 @@ class ResultManager(Resource):
         elif check_pesel(pesel) == False:
             return make_response(jsonify({ 'Message': 'Wrong pesel format!' }),400)
         else:
-            result = Result.query.filter_by(pesel=pesel).first()
-            return jsonify(result_schema.dump(result))
+            result = Result.query.filter_by(pesel=pesel).all()
+            return jsonify(results_schema.dump(result))
 
     @staticmethod
     def post():
@@ -243,7 +243,7 @@ class EmployeeSchema(ma.Schema):
         fields = ('id', 'username', 'password', 'first_name', 'last_name')
 
 employee_schema = EmployeeSchema() 
-employee_schema = EmployeeSchema(many=True)
+employees_schema = EmployeeSchema(many=True)
 
 class EmployeeManager(Resource): 
     # @staticmethod
@@ -264,11 +264,11 @@ class EmployeeManager(Resource):
 
         if not username:
             employees = Employee.query.all()
-            return make_response(jsonify(employee_schema.dump(employees)),200)
+            return make_response(jsonify(employees_schema.dump(employees)),200)
         elif Employee.query.filter_by(username=username).all() == None:
             return make_response(jsonify({ 'Message': 'Employee not exist!' }),404)
         else:
-            employee = Employee.query.filter_by(username=username).all()
+            employee = Employee.query.filter_by(username=username).first()
             return make_response(jsonify(employee_schema.dump(employee)),200)
 
     @staticmethod
