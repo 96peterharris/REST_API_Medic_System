@@ -138,7 +138,7 @@ class Result(db.Model):
     db.Column('pesel', db.String(11), db.ForeignKey('user.pesel')),
     db.Column('username', db.String(32), db.ForeignKey('employee.username')),
     db.Column('result_date', db.DateTime, default=func.now()),
-    db.Column('result_file', db.BLOB))
+    db.Column('result_file', db.String(255)))
     # user = relationship("User", backref=backref("user", uselist=False))
     # employee = relationship("Employee", backref=backref("employee", uselist=False))
 
